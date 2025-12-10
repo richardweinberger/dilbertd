@@ -5,6 +5,7 @@ dilbertd: main.go go.sum frontend/src/index.html frontend/src/main.css
 
 go.sum: go.mod
 	go get dilbertd
+	touch go.sum
 
 frontend/src/main.css: node_modules frontend/src/index.html frontend/src/input.css frontend/tailwind.config.js
 	npx @tailwindcss/cli -i frontend/src/input.css -o frontend/src/main.css
