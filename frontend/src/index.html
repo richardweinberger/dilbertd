@@ -93,8 +93,8 @@
       }
 
       document.addEventListener("DOMContentLoaded", async () => {
-        var selectedYear = window.location.pathname.split("/")[1];
         const yearSelector = document.getElementById("year-selector");
+        var currentStrip = localStorage.getItem("currentStrip");
 
         try {
           const response = await fetch("/api/years");
@@ -113,8 +113,11 @@
             yearSelector.appendChild(option);
           });
 
-          if (!selectedYear) {
+          if (!currentStrip) {
             selectedYear = years[0];
+          } else {
+            const year = currentStrip.split("-")[1];
+            selectedYear = year;
           }
         } catch (error) {
           console.error("Error loading years:", error);
@@ -126,15 +129,15 @@
           const year = e.target.value;
           if (!year) return;
 
-          loadStrips(year);
+          loadStrips(year, null);
         });
 
         yearSelector.disabled = false;
 
-        await loadStrips(selectedYear);
+        await loadStrips(selectedYear, currentStrip);
       });
 
-      async function loadStrips(year) {
+      async function loadStrips(year, currentStrip) {
         const stripsContainer = document.getElementById("strips-container");
         const monthSelector = document.getElementById("month-selector");
 
@@ -220,14 +223,50 @@
             }
           });
 
+          const viewTimers = new Map();
+
+          const observerCallback = (entries) => {
+            entries.forEach((entry) => {
+              const element = entry.target;
+              const elementId = element.id;
+
+              if (entry.isIntersecting) {
+                const timerId = setTimeout(() => {
+                  localStorage.setItem("currentStrip", elementId);
+                }, 5000);
+
+                viewTimers.set(element, timerId);
+              } else {
+                if (viewTimers.has(element)) {
+                  clearTimeout(viewTimers.get(element));
+                  viewTimers.delete(element);
+                }
+              }
+            });
+          };
+
           const fragment = document.createDocumentFragment();
+          const observer = new IntersectionObserver(observerCallback, {
+            threshold: 0.5,
+          });
 
           allStrips.forEach((strip) => {
             const stripElement = createStripElement(strip);
             fragment.appendChild(stripElement);
+            observer.observe(stripElement);
           });
 
           stripsContainer.appendChild(fragment);
+
+          if (currentStrip) {
+            const targetElement = document.getElementById(currentStrip);
+            if (targetElement) {
+              targetElement.scrollIntoView({
+                behavior: "instant",
+                block: "center",
+              });
+            }
+          }
         } catch (error) {
           console.error("Error loading strips:", error);
         }
