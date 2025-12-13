@@ -58,9 +58,15 @@
 
     <main class="max-w-3xl mx-auto px-4 py-8">
       <div id="strips-container" class="space-y-12"></div>
+      <div class="flex justify-center w-full">
+        <div><a href="#" onClick="nextYear();">Jump to next year</a></div>
+      </div>
     </main>
 
     <script>
+      var years = [];
+      var selectedYear = 0;
+
       function createStripElement(strip) {
         const div = document.createElement("div");
         div.id = "strip-" + strip.date;
@@ -100,24 +106,24 @@
           const response = await fetch("/api/years");
           if (!response.ok) throw new Error("Failed to load years");
 
-          const years = await response.json();
+          years = await response.json();
 
           if (years.length === 0) {
             return;
           }
 
           if (!currentStrip) {
-            selectedYear = years[0];
+            selectedYear = 0;
           } else {
             const year = currentStrip.split("-")[1];
-            selectedYear = year;
+            selectedYear = years.indexOf(year);
           }
 
           years.forEach((year) => {
             const option = document.createElement("option");
             option.value = year;
             option.textContent = year;
-            if (year == selectedYear) {
+            if (year == years[selectedYear]) {
               option.selected = true;
             }
             yearSelector.appendChild(option);
@@ -132,17 +138,19 @@
           const year = e.target.value;
           if (!year) return;
 
-          loadStrips(year, null);
+          selectedYear = years.indexOf(year);
+          loadStrips(null);
         });
 
         yearSelector.disabled = false;
 
-        await loadStrips(selectedYear, currentStrip);
+        await loadStrips(currentStrip);
       });
 
-      async function loadStrips(year, currentStrip) {
+      async function loadStrips(currentStrip) {
         const stripsContainer = document.getElementById("strips-container");
         const monthSelector = document.getElementById("month-selector");
+        const year = years[selectedYear];
 
         document.title = "Dilbert - " + year;
 
@@ -272,6 +280,15 @@
           }
         } catch (error) {
           console.error("Error loading strips:", error);
+        }
+      }
+
+      function nextYear() {
+        const yearSelector = document.getElementById("year-selector");
+        if (selectedYear < years.length - 1) {
+          selectedYear++;
+          yearSelector.value = years[selectedYear];
+          loadStrips(null);
         }
       }
     </script>
